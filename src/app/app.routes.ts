@@ -1,3 +1,43 @@
 import { Routes } from '@angular/router';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+  {
+    path: '',
+    redirectTo: 'live',
+    pathMatch: 'full'
+  },
+  {
+    path: 'live',
+    loadComponent: () =>
+      import('./pages/live-feed/live-feed.component')
+        .then(m => m.LiveFeedComponent)
+  },
+  {
+    path: 'dashboard',
+    loadComponent: () =>
+      import('./pages/dashboard/dashboard.component')
+        .then(m => m.DashboardComponent)
+  },
+  {
+    path: 'alert/:eventId',
+    loadComponent: () =>
+      import('./pages/alert-detail/alert-detail.component')
+        .then(m => m.AlertDetailComponent)
+  },
+  {
+    path: 'entity/:entityId',
+    loadComponent: () =>
+      import('./pages/entity-timeline/entity-timeline.component')
+        .then(m => m.EntityTimelineComponent)
+  },
+  {
+    path: 'history',
+    loadComponent: () =>
+      import('./pages/history/history.component')
+        .then(m => m.HistoryComponent)
+  },
+  {
+    path: '**',
+    redirectTo: 'live'
+  }
+];
