@@ -25,7 +25,7 @@ export interface Alert {
   ruleTriggered:  boolean;
   ruleScore:      number;
   ruleShortcut:   boolean;
-  rulesFired:     string[];
+  rulesFired:     string[] | undefined;  
 
   statScore:      number | null;
   behaviorScore:  number | null;

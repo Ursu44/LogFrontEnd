@@ -1,8 +1,242 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { Alert } from '../../core/models/alert.model';
+import { AlertService } from '../../core/services/alert.service';
 
 @Component({
   selector: 'app-live-feed',
   standalone: true,
-  template: `<div>Live Feed</div>`
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+          <h1 class="text-2xl font-bold text-gray-800">Live Alerts</h1>
+          <span class="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold"
+                [class]="isPaused ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'">
+            <span class="w-2 h-2 rounded-full"
+                  [class]="isPaused ? 'bg-orange-500' : 'bg-green-500 animate-pulse'"></span>
+            {{ isPaused ? 'PAUSED' : 'LIVE' }}
+          </span>
+          <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-sm font-bold">
+            {{ highCount }} HIGH
+          </span>
+          <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm font-bold">
+            {{ mediumCount }} MED
+          </span>
+          <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-bold">
+            {{ lowCount }} LOW
+          </span>
+        </div>
+        <div class="flex gap-2">
+          <button (click)="togglePause()"
+                  class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors text-sm">
+            {{ isPaused ? '▶ Reia' : '⏸ Pauză' }}
+          </button>
+          <button (click)="exportCsv()"
+                  class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors text-sm">
+            ⬇ Export CSV
+          </button>
+          <button (click)="goToHistory()"
+                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-sm">
+            🗂 Caută în Istoric
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4 mb-4">
+        <div class="flex gap-2">
+          <button *ngFor="let level of ['HIGH', 'MEDIUM', 'LOW']"
+                  (click)="toggleRiskLevel(level)"
+                  class="px-3 py-1 rounded-full text-sm font-semibold border transition-colors"
+                  [class]="isSelected(level) ? getRiskSelectedClass(level) : 'border-gray-300 text-gray-500 hover:bg-gray-100'">
+            {{ getRiskIcon(level) }} {{ level }}
+          </button>
+        </div>
+        <input [(ngModel)]="searchTerm"
+               (input)="applyFilters()"
+               placeholder="Caută entitate sau regulă..."
+               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+      </div>
+
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Risk</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Entitate</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Categorie</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Reguli</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Score</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Timp</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let alert of filteredAlerts"
+                (click)="openDetail(alert)"
+                class="border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+                [class]="getRowClass(alert.riskLevel)">
+              <td class="px-4 py-3">
+                <span class="px-2 py-1 rounded text-xs font-bold"
+                      [class]="getRiskBadgeClass(alert.riskLevel)">
+                  {{ getRiskIcon(alert.riskLevel) }} {{ alert.riskLevel }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span (click)="goToTimeline(alert.entityId); $event.stopPropagation()"
+                      class="text-indigo-600 font-medium hover:underline cursor-pointer">
+                  {{ alert.entityId }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                  {{ alert.logCategory }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span *ngFor="let rule of (alert.rulesFired || []).slice(0,2)"
+                      class="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs mr-1">
+                  {{ rule }}
+                </span>
+                <span *ngIf="(alert.rulesFired || []).length > 2"
+                      class="text-xs text-gray-400">
+                  +{{ (alert.rulesFired || []).length - 2 }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full transition-all"
+                         [class]="getScoreBarClass(alert.riskLevel)"
+                         [style.width.%]="alert.finalRisk * 100">
+                    </div>
+                  </div>
+                  <span class="text-xs font-mono text-gray-600">
+                    {{ alert.finalRisk | number:'1.3-3' }}
+                  </span>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-gray-500 font-mono text-xs">
+                {{ alert.timestampIso | date:'HH:mm:ss' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="filteredAlerts.length === 0"
+             class="text-center py-16 text-gray-400">
+          <div class="text-4xl mb-3">📡</div>
+          <p>Așteptând alerte...</p>
+        </div>
+      </div>
+    </div>
+  `
 })
-export class LiveFeedComponent {}
+export class LiveFeedComponent implements OnInit, OnDestroy {
+
+  alerts: Alert[] = [];
+  filteredAlerts: Alert[] = [];
+  selectedRiskLevels: string[] = ['HIGH', 'MEDIUM', 'LOW'];
+  searchTerm = '';
+  isPaused = false;
+
+  private sub!: Subscription;
+  private MAX_ALERTS = 200;
+
+  get highCount()   { return this.alerts.filter(a => a.riskLevel === 'HIGH').length; }
+  get mediumCount() { return this.alerts.filter(a => a.riskLevel === 'MEDIUM').length; }
+  get lowCount()    { return this.alerts.filter(a => a.riskLevel === 'LOW').length; }
+
+  constructor(private alertService: AlertService, private router: Router) {}
+
+  ngOnInit(): void {
+    this.sub = this.alertService.subscribeToAlerts().subscribe(alert => {
+      if (this.isPaused) return;
+      this.alerts.unshift(alert);
+      if (this.alerts.length > this.MAX_ALERTS) {
+        this.alerts = this.alerts.slice(0, this.MAX_ALERTS);
+      }
+      this.applyFilters();
+    });
+  }
+
+  togglePause(): void { this.isPaused = !this.isPaused; }
+
+  toggleRiskLevel(level: string): void {
+    if (this.selectedRiskLevels.includes(level)) {
+      this.selectedRiskLevels = this.selectedRiskLevels.filter(l => l !== level);
+    } else {
+      this.selectedRiskLevels.push(level);
+    }
+    this.applyFilters();
+  }
+
+  isSelected(level: string): boolean {
+    return this.selectedRiskLevels.includes(level);
+  }
+
+  applyFilters(): void {
+    this.filteredAlerts = this.alerts.filter(alert => {
+      if (!this.selectedRiskLevels.includes(alert.riskLevel)) return false;
+      if (this.searchTerm) {
+        const term = this.searchTerm.toLowerCase();
+        const inEntity = alert.entityId?.toLowerCase().includes(term);
+        const inRules  = (alert.rulesFired || []).some(r => r.toLowerCase().includes(term));
+        if (!inEntity && !inRules) return false;
+      }
+      return true;
+    });
+  }
+
+  getRiskIcon(level: string): string {
+    return level === 'HIGH' ? '🔴' : level === 'MEDIUM' ? '🟡' : '🟢';
+  }
+
+  getRiskBadgeClass(level: string): string {
+    if (level === 'HIGH')   return 'bg-red-100 text-red-700';
+    if (level === 'MEDIUM') return 'bg-yellow-100 text-yellow-700';
+    return 'bg-green-100 text-green-700';
+  }
+
+  getRiskSelectedClass(level: string): string {
+    if (level === 'HIGH')   return 'bg-red-100 text-red-700 border-red-300';
+    if (level === 'MEDIUM') return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+    return 'bg-green-100 text-green-700 border-green-300';
+  }
+
+  getRowClass(level: string): string {
+    if (level === 'HIGH')   return 'border-l-4 border-l-red-400';
+    if (level === 'MEDIUM') return 'border-l-4 border-l-yellow-400';
+    return 'border-l-4 border-l-green-400';
+  }
+
+  getScoreBarClass(level: string): string {
+    if (level === 'HIGH')   return 'bg-red-500';
+    if (level === 'MEDIUM') return 'bg-yellow-500';
+    return 'bg-green-500';
+  }
+
+  openDetail(alert: Alert): void { this.router.navigate(['/alert', alert.eventId]); }
+  goToTimeline(entityId: string): void { this.router.navigate(['/entity', entityId]); }
+  goToHistory(): void { this.router.navigate(['/history']); }
+
+  exportCsv(): void {
+    const headers = ['eventId','entityId','riskLevel','finalRisk','logCategory','rulesFired','timestampIso'];
+    const rows = this.filteredAlerts.map(a => [
+      a.eventId, a.entityId, a.riskLevel, a.finalRisk,
+      a.logCategory, (a.rulesFired || []).join(';'), a.timestampIso
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const el   = document.createElement('a');
+    el.href = url;
+    el.download = `alerts_${new Date().toISOString()}.csv`;
+    el.click();
+    URL.revokeObjectURL(url);
+  }
+
+  ngOnDestroy(): void { this.sub?.unsubscribe(); }
+}
