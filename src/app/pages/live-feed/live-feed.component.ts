@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { interval, Subscription, switchMap } from 'rxjs';
 import { Alert } from '../../core/models/alert.model';
 import { AlertService } from '../../core/services/alert.service';
 
@@ -149,18 +149,33 @@ export class LiveFeedComponent implements OnInit, OnDestroy {
   get mediumCount() { return this.alerts.filter(a => a.riskLevel === 'MEDIUM').length; }
   get lowCount()    { return this.alerts.filter(a => a.riskLevel === 'LOW').length; }
 
-  constructor(private alertService: AlertService, private router: Router) {}
+  constructor(
+    private alertService: AlertService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
-  ngOnInit(): void {
-    this.sub = this.alertService.subscribeToAlerts().subscribe(alert => {
+ ngOnInit(): void {
+  this.alertService.getRecentAlerts().subscribe(alerts => {
+    this.alerts = [...alerts];
+    this.applyFilters();
+    this.cdr.detectChanges();
+  });
+
+  this.sub = this.alertService.subscribeToAlerts().subscribe({
+    next: alert => {
       if (this.isPaused) return;
-      this.alerts.unshift(alert);
-      if (this.alerts.length > this.MAX_ALERTS) {
-        this.alerts = this.alerts.slice(0, this.MAX_ALERTS);
+      console.log('🔴 Live alert:', alert.entityId, alert.riskLevel);
+      const exists = this.alerts.some(a => a.eventId === alert.eventId);
+      if (!exists) {
+        this.alerts = [alert, ...this.alerts].slice(0, this.MAX_ALERTS);
+        this.applyFilters();
+        this.cdr.detectChanges();
       }
-      this.applyFilters();
-    });
-  }
+    },
+    error: err => console.error('Eroare subscription:', err)
+  });
+}
 
   togglePause(): void { this.isPaused = !this.isPaused; }
 
