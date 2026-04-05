@@ -26,6 +26,14 @@ import { CommonModule } from '@angular/common';
         <!-- Navigation -->
         <nav class="flex-1 p-3 space-y-1">
 
+        <a routerLink="/"
+   routerLinkActive="bg-indigo-700 text-white"
+   [routerLinkActiveOptions]="{exact: true}"
+   class="flex items-center gap-3 px-3 py-2 rounded-lg
+          text-indigo-200 hover:bg-indigo-800 transition-colors">
+  <span>🏠</span>
+  <span>Home</span>
+</a>
           <a routerLink="/live"
              routerLinkActive="bg-indigo-700 text-white"
              class="flex items-center gap-3 px-3 py-2 rounded-lg

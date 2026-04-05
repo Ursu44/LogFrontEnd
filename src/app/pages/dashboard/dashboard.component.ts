@@ -28,6 +28,9 @@ import { AlertService } from '../../core/services/alert.service';
             <option [value]="30">Ultimele 30 min</option>
             <option [value]="60">Ultima oră</option>
             <option [value]="360">Ultimele 6h</option>
+            <option [value]="1440">Ultimele 24h</option>
+            <option [value]="10080">Ultima săptămână</option>
+            <option [value]="999999">Toate</option>
           </select>
 
           <!-- Auto-refresh toggle -->
@@ -174,10 +177,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.toggleAutoRefresh();
   }
 
-  loadStats(): void {
-    this.alertService.getDashboardStats(this.windowMinutes)
-      .subscribe(stats => this.stats = stats);
-  }
+ loadStats(): void {
+  this.alertService.getDashboardStats(Number(this.windowMinutes))
+    .subscribe({
+      next: stats => {
+        console.log('Stats primite:', stats);
+        this.stats = stats;
+      },
+      error: err => console.error('Eroare stats:', err)
+    });
+}
 
   toggleAutoRefresh(): void {
     this.refreshSub?.unsubscribe();

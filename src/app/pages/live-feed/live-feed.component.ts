@@ -56,6 +56,14 @@ import { AlertService } from '../../core/services/alert.service';
             {{ getRiskIcon(level) }} {{ level }}
           </button>
         </div>
+
+        <button (click)="resetFilters()"
+          class="px-3 py-1 rounded-full text-sm font-semibold border transition-colors"
+          [class]="selectedRiskLevels.length === 3
+            ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
+            : 'border-gray-300 text-gray-500 hover:bg-gray-100'">
+            🔄 Toate
+        </button>
         <input [(ngModel)]="searchTerm"
                (input)="applyFilters()"
                placeholder="Caută entitate sau regulă..."
@@ -179,18 +187,27 @@ export class LiveFeedComponent implements OnInit, OnDestroy {
 
   togglePause(): void { this.isPaused = !this.isPaused; }
 
-  toggleRiskLevel(level: string): void {
-    if (this.selectedRiskLevels.includes(level)) {
-      this.selectedRiskLevels = this.selectedRiskLevels.filter(l => l !== level);
-    } else {
-      this.selectedRiskLevels.push(level);
-    }
-    this.applyFilters();
-  }
 
-  isSelected(level: string): boolean {
-    return this.selectedRiskLevels.includes(level);
+toggleRiskLevel(level: string): void {
+  if (this.selectedRiskLevels.length === 1 && 
+      this.selectedRiskLevels.includes(level)) {
+    this.selectedRiskLevels = ['HIGH', 'MEDIUM', 'LOW'];
+  } else {
+    this.selectedRiskLevels = [level];
   }
+  this.applyFilters();
+}
+
+resetFilters(): void {
+  this.selectedRiskLevels = ['HIGH', 'MEDIUM', 'LOW'];
+  this.searchTerm = '';
+  this.applyFilters();
+}
+
+isSelected(level: string): boolean {
+  return this.selectedRiskLevels.length === 1 &&
+         this.selectedRiskLevels.includes(level);
+}
 
   applyFilters(): void {
     this.filteredAlerts = this.alerts.filter(alert => {

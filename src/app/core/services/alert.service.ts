@@ -58,7 +58,7 @@ export class AlertService {
                    windowMinutes: number = 30): Observable<Alert[]> {
     return this.apollo.query<{ entityHistory: Alert[] }>({
       query: GET_ENTITY_HISTORY,
-      variables: { entityId, windowMinutes },
+      variables: { entityId, windowMinutes: Number(windowMinutes)  },
       fetchPolicy: 'network-only'
     }).pipe(map(result => result.data!.entityHistory));
   }
