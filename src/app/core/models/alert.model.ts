@@ -48,6 +48,8 @@ export interface DashboardStats {
   highCount:    number;
   mediumCount:  number;
   lowCount:     number;
+  oldestAlert:  string | null;
+  newestAlert:  string | null;
 }
 
 export interface AlertFilters {

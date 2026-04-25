@@ -1,8 +1,7 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { interval, Subscription, switchMap } from 'rxjs';
 import { DashboardStats } from '../../core/models/alert.model';
 import { AlertService } from '../../core/services/alert.service';
 
@@ -19,9 +18,8 @@ import { AlertService } from '../../core/services/alert.service';
 
         <div class="flex items-center gap-4">
 
-          <!-- Selector interval -->
           <select [(ngModel)]="windowMinutes"
-                  (change)="loadStats()"
+                  (ngModelChange)="onWindowChange()"
                   class="px-3 py-2 border border-gray-300 rounded-lg
                          text-sm focus:outline-none focus:border-indigo-500">
             <option [value]="15">Ultimele 15 min</option>
@@ -33,26 +31,29 @@ import { AlertService } from '../../core/services/alert.service';
             <option [value]="999999">Toate</option>
           </select>
 
-          <!-- Auto-refresh toggle -->
-          <label class="flex items-center gap-2 text-sm text-gray-600">
-            <input type="checkbox"
-                   [(ngModel)]="autoRefresh"
-                   (change)="toggleAutoRefresh()"
-                   class="rounded">
-            Auto-refresh 30s
-          </label>
-
-          <!-- Refresh manual -->
-          <button (click)="loadStats()"
+          <button (click)="reload()"
+                  [disabled]="loading"
                   class="px-3 py-2 border border-gray-300 rounded-lg
-                         hover:bg-gray-100 transition-colors text-sm">
-            🔄 Reîncarcă
+                         hover:bg-gray-100 transition-colors text-sm
+                         disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ loading ? '⏳ Se încarcă...' : '🔄 Reîncarcă' }}
           </button>
+
+          <!-- Timestamp ultima actualizare -->
+          <span *ngIf="lastUpdated" class="text-xs text-gray-400">
+            Actualizat: {{ lastUpdated | date:'HH:mm:ss' }}
+          </span>
 
         </div>
       </div>
 
-      <ng-container *ngIf="stats; else loading">
+      <!-- Loading bar -->
+      <div *ngIf="loading"
+           class="w-full h-1 bg-indigo-200 rounded mb-4 overflow-hidden">
+        <div class="h-full bg-indigo-600 animate-pulse w-full"></div>
+      </div>
+
+      <ng-container *ngIf="stats && !loading; else loadingTpl">
 
         <!-- KPI Cards -->
         <div class="grid grid-cols-4 gap-4 mb-6">
@@ -66,27 +67,36 @@ import { AlertService } from '../../core/services/alert.service';
 
           <div class="bg-white rounded-xl shadow p-5 text-center
                       cursor-pointer hover:shadow-md transition-shadow"
-               (click)="goToFeed('HIGH')">
+               (click)="goToFeed()">
             <div class="text-3xl font-bold text-red-600">
               {{ stats.highCount }}
+            </div>
+            <div class="text-xs text-red-400 font-medium mt-1">
+              {{ getPercent(stats.highCount, stats.totalAlerts) }}% din total
             </div>
             <div class="text-sm text-gray-500 mt-1">🔴 HIGH</div>
           </div>
 
           <div class="bg-white rounded-xl shadow p-5 text-center
                       cursor-pointer hover:shadow-md transition-shadow"
-               (click)="goToFeed('MEDIUM')">
+               (click)="goToFeed()">
             <div class="text-3xl font-bold text-yellow-600">
               {{ stats.mediumCount }}
+            </div>
+            <div class="text-xs text-yellow-400 font-medium mt-1">
+              {{ getPercent(stats.mediumCount, stats.totalAlerts) }}% din total
             </div>
             <div class="text-sm text-gray-500 mt-1">🟡 MEDIUM</div>
           </div>
 
           <div class="bg-white rounded-xl shadow p-5 text-center
                       cursor-pointer hover:shadow-md transition-shadow"
-               (click)="goToFeed('LOW')">
+               (click)="goToFeed()">
             <div class="text-3xl font-bold text-green-600">
               {{ stats.lowCount }}
+            </div>
+            <div class="text-xs text-green-400 font-medium mt-1">
+              {{ getPercent(stats.lowCount, stats.totalAlerts) }}% din total
             </div>
             <div class="text-sm text-gray-500 mt-1">🟢 LOW</div>
           </div>
@@ -99,57 +109,97 @@ import { AlertService } from '../../core/services/alert.service';
             Distribuție Risk Level
           </h2>
 
-          <!-- Bara progres HIGH -->
+          <!-- HIGH -->
           <div class="mb-4">
             <div class="flex justify-between text-sm mb-1">
               <span class="text-red-600 font-medium">🔴 HIGH</span>
-              <span class="text-gray-500">{{ stats.highCount }}</span>
+              <span class="text-gray-500">
+                {{ stats.highCount }}
+                <span class="text-red-500 font-semibold ml-1">
+                  ({{ getPercent(stats.highCount, stats.totalAlerts) }}%)
+                </span>
+              </span>
             </div>
             <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-red-500 rounded-full transition-all duration-500"
+              <div class="h-full bg-red-500 rounded-full transition-all duration-500
+                          flex items-center justify-end pr-2"
                    [style.width.%]="getPercent(stats.highCount, stats.totalAlerts)">
+                <span class="text-white text-xs font-bold"
+                      *ngIf="getPercent(stats.highCount, stats.totalAlerts) > 10">
+                  {{ getPercent(stats.highCount, stats.totalAlerts) }}%
+                </span>
               </div>
             </div>
           </div>
 
-          <!-- Bara progres MEDIUM -->
+          <!-- MEDIUM -->
           <div class="mb-4">
             <div class="flex justify-between text-sm mb-1">
               <span class="text-yellow-600 font-medium">🟡 MEDIUM</span>
-              <span class="text-gray-500">{{ stats.mediumCount }}</span>
+              <span class="text-gray-500">
+                {{ stats.mediumCount }}
+                <span class="text-yellow-500 font-semibold ml-1">
+                  ({{ getPercent(stats.mediumCount, stats.totalAlerts) }}%)
+                </span>
+              </span>
             </div>
             <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-yellow-500 rounded-full transition-all duration-500"
+              <div class="h-full bg-yellow-500 rounded-full transition-all duration-500
+                          flex items-center justify-end pr-2"
                    [style.width.%]="getPercent(stats.mediumCount, stats.totalAlerts)">
+                <span class="text-white text-xs font-bold"
+                      *ngIf="getPercent(stats.mediumCount, stats.totalAlerts) > 10">
+                  {{ getPercent(stats.mediumCount, stats.totalAlerts) }}%
+                </span>
               </div>
             </div>
           </div>
 
-          <!-- Bara progres LOW -->
+          <!-- LOW -->
           <div class="mb-4">
             <div class="flex justify-between text-sm mb-1">
               <span class="text-green-600 font-medium">🟢 LOW</span>
-              <span class="text-gray-500">{{ stats.lowCount }}</span>
+              <span class="text-gray-500">
+                {{ stats.lowCount }}
+                <span class="text-green-500 font-semibold ml-1">
+                  ({{ getPercent(stats.lowCount, stats.totalAlerts) }}%)
+                </span>
+              </span>
             </div>
             <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-full bg-green-500 rounded-full transition-all duration-500"
+              <div class="h-full bg-green-500 rounded-full transition-all duration-500
+                          flex items-center justify-end pr-2"
                    [style.width.%]="getPercent(stats.lowCount, stats.totalAlerts)">
+                <span class="text-white text-xs font-bold"
+                      *ngIf="getPercent(stats.lowCount, stats.totalAlerts) > 10">
+                  {{ getPercent(stats.lowCount, stats.totalAlerts) }}%
+                </span>
               </div>
             </div>
           </div>
 
         </div>
 
-        <!-- Info interval -->
-        <div class="text-center text-sm text-gray-400">
-          Date din ultimele {{ windowMinutes }} minute
-          <span *ngIf="autoRefresh"> · Auto-refresh activ</span>
+        <!-- Interval real -->
+        <div class="text-center text-xs text-gray-400 mt-1"
+             *ngIf="stats.oldestAlert">
+          Interval real:
+          {{ stats.oldestAlert | date:'dd/MM/yy HH:mm' }}
+          →
+          {{ stats.newestAlert | date:'dd/MM/yy HH:mm' }}
+        </div>
+
+        <!-- Avertisment fără date -->
+        <div class="text-center text-xs text-orange-400 mt-2"
+             *ngIf="stats.totalAlerts === 0">
+          ⚠️ Nu există date în intervalul selectat.
+          Încearcă un interval mai mare sau selectează "Toate".
         </div>
 
       </ng-container>
 
-      <!-- Loading -->
-      <ng-template #loading>
+      <!-- Loading template -->
+      <ng-template #loadingTpl>
         <div class="text-center py-20 text-gray-400">
           <div class="text-4xl mb-3">⏳</div>
           <p>Se încarcă statisticile...</p>
@@ -162,41 +212,50 @@ import { AlertService } from '../../core/services/alert.service';
 export class DashboardComponent implements OnInit, OnDestroy {
 
   stats: DashboardStats | null = null;
-  windowMinutes = 30;
-  autoRefresh = true;
-
-  private refreshSub?: Subscription;
+  windowMinutes = 999999;
+  loading = false;
+  lastUpdated: Date | null = null;
 
   constructor(
     private alertService: AlertService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.loadStats();
-    this.toggleAutoRefresh();
   }
 
- loadStats(): void {
-  this.alertService.getDashboardStats(Number(this.windowMinutes))
-    .subscribe({
-      next: stats => {
-        console.log('Stats primite:', stats);
-        this.stats = stats;
-      },
-      error: err => console.error('Eroare stats:', err)
-    });
-}
+  onWindowChange(): void {
+    this.stats = null;
+    this.loadStats();
+  }
 
-  toggleAutoRefresh(): void {
-    this.refreshSub?.unsubscribe();
-    if (this.autoRefresh) {
-      this.refreshSub = interval(30000)
-        .pipe(switchMap(() =>
-          this.alertService.getDashboardStats(this.windowMinutes)
-        ))
-        .subscribe(stats => this.stats = stats);
-    }
+  reload(): void {
+    this.stats = null;
+    this.loadStats();
+  }
+
+  loadStats(): void {
+    this.loading = true;
+    this.cdr.detectChanges();
+
+    this.alertService.getDashboardStats(Number(this.windowMinutes))
+      .subscribe({
+        next: stats => {
+          this.stats = stats;
+          this.lastUpdated = new Date();
+          setTimeout(() => {
+            this.loading = false;
+            this.cdr.detectChanges();
+          }, 300);
+        },
+        error: err => {
+          console.error('Eroare stats:', err);
+          this.loading = false;
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   getPercent(value: number, total: number): number {
@@ -204,11 +263,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return Math.round((value / total) * 100);
   }
 
-  goToFeed(riskLevel: string): void {
+  goToFeed(): void {
     this.router.navigate(['/live']);
   }
 
-  ngOnDestroy(): void {
-    this.refreshSub?.unsubscribe();
-  }
+  ngOnDestroy(): void {}
 }

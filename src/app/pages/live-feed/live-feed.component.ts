@@ -15,61 +15,126 @@ import { AlertService } from '../../core/services/alert.service';
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
           <h1 class="text-2xl font-bold text-gray-800">Live Alerts</h1>
-          <span class="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold"
-                [class]="isPaused ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'">
+
+          <!-- Indicator LIVE / PAUSED -->
+          <span class="flex items-center gap-2 px-3 py-1 rounded-full
+                       text-sm font-semibold"
+                [class]="isPaused
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'bg-green-100 text-green-700'">
             <span class="w-2 h-2 rounded-full"
-                  [class]="isPaused ? 'bg-orange-500' : 'bg-green-500 animate-pulse'"></span>
+                  [class]="isPaused
+                    ? 'bg-orange-500'
+                    : 'bg-green-500 animate-pulse'"></span>
             {{ isPaused ? 'PAUSED' : 'LIVE' }}
           </span>
-          <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-sm font-bold">
+
+          <!-- Contoare cu procente -->
+          <span class="px-2 py-1 bg-red-100 text-red-700 rounded
+                       text-sm font-bold">
             {{ highCount }} HIGH
+            <span class="font-normal opacity-75">({{ highPercent }}%)</span>
           </span>
-          <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm font-bold">
+          <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded
+                       text-sm font-bold">
             {{ mediumCount }} MED
+            <span class="font-normal opacity-75">({{ mediumPercent }}%)</span>
           </span>
-          <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-bold">
+          <span class="px-2 py-1 bg-green-100 text-green-700 rounded
+                       text-sm font-bold">
             {{ lowCount }} LOW
+            <span class="font-normal opacity-75">({{ lowPercent }}%)</span>
           </span>
         </div>
+
         <div class="flex gap-2">
           <button (click)="togglePause()"
-                  class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors text-sm">
+                  class="px-4 py-2 rounded-lg border border-gray-300
+                         hover:bg-gray-100 transition-colors text-sm">
             {{ isPaused ? '▶ Reia' : '⏸ Pauză' }}
           </button>
           <button (click)="exportCsv()"
-                  class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors text-sm">
+                  class="px-4 py-2 rounded-lg border border-gray-300
+                         hover:bg-gray-100 transition-colors text-sm">
             ⬇ Export CSV
           </button>
           <button (click)="goToHistory()"
-                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-sm">
+                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white
+                         hover:bg-indigo-700 transition-colors text-sm">
             🗂 Caută în Istoric
           </button>
         </div>
       </div>
 
+      <!-- Bare de progres vizuale -->
+      <div class="bg-white rounded-xl shadow p-4 mb-4"
+           *ngIf="totalCount > 0">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs font-medium text-gray-500 w-16">HIGH</span>
+          <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-red-500 rounded-full transition-all duration-500"
+                 [style.width.%]="highPercent">
+            </div>
+          </div>
+          <span class="text-xs font-mono text-red-600 w-12 text-right">
+            {{ highPercent }}%
+          </span>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs font-medium text-gray-500 w-16">MEDIUM</span>
+          <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-yellow-500 rounded-full transition-all duration-500"
+                 [style.width.%]="mediumPercent">
+            </div>
+          </div>
+          <span class="text-xs font-mono text-yellow-600 w-12 text-right">
+            {{ mediumPercent }}%
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-medium text-gray-500 w-16">LOW</span>
+          <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-green-500 rounded-full transition-all duration-500"
+                 [style.width.%]="lowPercent">
+            </div>
+          </div>
+          <span class="text-xs font-mono text-green-600 w-12 text-right">
+            {{ lowPercent }}%
+          </span>
+        </div>
+      </div>
+
+      <!-- Filtre -->
       <div class="flex items-center gap-4 mb-4">
         <div class="flex gap-2">
           <button *ngFor="let level of ['HIGH', 'MEDIUM', 'LOW']"
                   (click)="toggleRiskLevel(level)"
-                  class="px-3 py-1 rounded-full text-sm font-semibold border transition-colors"
-                  [class]="isSelected(level) ? getRiskSelectedClass(level) : 'border-gray-300 text-gray-500 hover:bg-gray-100'">
+                  class="px-3 py-1 rounded-full text-sm font-semibold
+                         border transition-colors"
+                  [class]="isSelected(level)
+                    ? getRiskSelectedClass(level)
+                    : 'border-gray-300 text-gray-500 hover:bg-gray-100'">
             {{ getRiskIcon(level) }} {{ level }}
           </button>
         </div>
 
         <button (click)="resetFilters()"
-          class="px-3 py-1 rounded-full text-sm font-semibold border transition-colors"
-          [class]="selectedRiskLevels.length === 3
-            ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
-            : 'border-gray-300 text-gray-500 hover:bg-gray-100'">
-            🔄 Toate
+                class="px-3 py-1 rounded-full text-sm font-semibold
+                       border transition-colors"
+                [class]="selectedRiskLevels.length === 3
+                  ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
+                  : 'border-gray-300 text-gray-500 hover:bg-gray-100'">
+          🔄 Toate
         </button>
+
         <input [(ngModel)]="searchTerm"
                (input)="applyFilters()"
                placeholder="Caută entitate sau regulă..."
-               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg
+                      text-sm focus:outline-none focus:border-indigo-500">
       </div>
 
+      <!-- Tabel alerte -->
       <div class="bg-white rounded-xl shadow overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 border-b border-gray-200">
@@ -85,7 +150,8 @@ import { AlertService } from '../../core/services/alert.service';
           <tbody>
             <tr *ngFor="let alert of filteredAlerts"
                 (click)="openDetail(alert)"
-                class="border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+                class="border-b border-gray-100 cursor-pointer
+                       hover:bg-gray-50 transition-colors"
                 [class]="getRowClass(alert.riskLevel)">
               <td class="px-4 py-3">
                 <span class="px-2 py-1 rounded text-xs font-bold"
@@ -94,19 +160,23 @@ import { AlertService } from '../../core/services/alert.service';
                 </span>
               </td>
               <td class="px-4 py-3">
-                <span (click)="goToTimeline(alert.entityId); $event.stopPropagation()"
-                      class="text-indigo-600 font-medium hover:underline cursor-pointer">
+                <span (click)="goToTimeline(alert.entityId);
+                               $event.stopPropagation()"
+                      class="text-indigo-600 font-medium
+                             hover:underline cursor-pointer">
                   {{ alert.entityId }}
                 </span>
               </td>
               <td class="px-4 py-3">
-                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                <span class="px-2 py-1 bg-blue-100 text-blue-700
+                             rounded text-xs">
                   {{ alert.logCategory }}
                 </span>
               </td>
               <td class="px-4 py-3">
                 <span *ngFor="let rule of (alert.rulesFired || []).slice(0,2)"
-                      class="inline-block px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs mr-1">
+                      class="inline-block px-2 py-0.5 bg-indigo-50
+                             text-indigo-700 rounded text-xs mr-1">
                   {{ rule }}
                 </span>
                 <span *ngIf="(alert.rulesFired || []).length > 2"
@@ -153,9 +223,27 @@ export class LiveFeedComponent implements OnInit, OnDestroy {
   private sub!: Subscription;
   private MAX_ALERTS = 200;
 
+  // ── Getter-e contoare ─────────────────────────────────────────
   get highCount()   { return this.alerts.filter(a => a.riskLevel === 'HIGH').length; }
   get mediumCount() { return this.alerts.filter(a => a.riskLevel === 'MEDIUM').length; }
   get lowCount()    { return this.alerts.filter(a => a.riskLevel === 'LOW').length; }
+  get totalCount()  { return this.alerts.length; }
+
+  // ── Getter-e procente ─────────────────────────────────────────
+  get highPercent(): number {
+    if (!this.totalCount) return 0;
+    return Math.round((this.highCount / this.totalCount) * 100);
+  }
+
+  get mediumPercent(): number {
+    if (!this.totalCount) return 0;
+    return Math.round((this.mediumCount / this.totalCount) * 100);
+  }
+
+  get lowPercent(): number {
+    if (!this.totalCount) return 0;
+    return Math.round((this.lowCount / this.totalCount) * 100);
+  }
 
   constructor(
     private alertService: AlertService,
@@ -163,51 +251,52 @@ export class LiveFeedComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef
   ) {}
 
- ngOnInit(): void {
-  this.alertService.getRecentAlerts().subscribe(alerts => {
-    this.alerts = [...alerts];
-    this.applyFilters();
-    this.cdr.detectChanges();
-  });
+  ngOnInit(): void {
+    // Istoricul din PostgreSQL la pornire
+    this.alertService.getRecentAlerts().subscribe(alerts => {
+      this.alerts = [...alerts];
+      this.applyFilters();
+      this.cdr.detectChanges();
+    });
 
-  this.sub = this.alertService.subscribeToAlerts().subscribe({
-    next: alert => {
-      if (this.isPaused) return;
-      console.log('🔴 Live alert:', alert.entityId, alert.riskLevel);
-      const exists = this.alerts.some(a => a.eventId === alert.eventId);
-      if (!exists) {
-        this.alerts = [alert, ...this.alerts].slice(0, this.MAX_ALERTS);
-        this.applyFilters();
-        this.cdr.detectChanges();
-      }
-    },
-    error: err => console.error('Eroare subscription:', err)
-  });
-}
+    // Alerte live prin WebSocket
+    this.sub = this.alertService.subscribeToAlerts().subscribe({
+      next: alert => {
+        if (this.isPaused) return;
+        const exists = this.alerts.some(a => a.eventId === alert.eventId);
+        if (!exists) {
+          this.alerts = [alert, ...this.alerts].slice(0, this.MAX_ALERTS);
+          this.applyFilters();
+          this.cdr.detectChanges();
+          // procentele se recalculează automat — sunt getter-e
+        }
+      },
+      error: err => console.error('Eroare subscription:', err)
+    });
+  }
 
   togglePause(): void { this.isPaused = !this.isPaused; }
 
-
-toggleRiskLevel(level: string): void {
-  if (this.selectedRiskLevels.length === 1 && 
-      this.selectedRiskLevels.includes(level)) {
-    this.selectedRiskLevels = ['HIGH', 'MEDIUM', 'LOW'];
-  } else {
-    this.selectedRiskLevels = [level];
+  toggleRiskLevel(level: string): void {
+    if (this.selectedRiskLevels.length === 1 &&
+        this.selectedRiskLevels.includes(level)) {
+      this.selectedRiskLevels = ['HIGH', 'MEDIUM', 'LOW'];
+    } else {
+      this.selectedRiskLevels = [level];
+    }
+    this.applyFilters();
   }
-  this.applyFilters();
-}
 
-resetFilters(): void {
-  this.selectedRiskLevels = ['HIGH', 'MEDIUM', 'LOW'];
-  this.searchTerm = '';
-  this.applyFilters();
-}
+  resetFilters(): void {
+    this.selectedRiskLevels = ['HIGH', 'MEDIUM', 'LOW'];
+    this.searchTerm = '';
+    this.applyFilters();
+  }
 
-isSelected(level: string): boolean {
-  return this.selectedRiskLevels.length === 1 &&
-         this.selectedRiskLevels.includes(level);
-}
+  isSelected(level: string): boolean {
+    return this.selectedRiskLevels.length === 1 &&
+           this.selectedRiskLevels.includes(level);
+  }
 
   applyFilters(): void {
     this.filteredAlerts = this.alerts.filter(alert => {
@@ -215,7 +304,8 @@ isSelected(level: string): boolean {
       if (this.searchTerm) {
         const term = this.searchTerm.toLowerCase();
         const inEntity = alert.entityId?.toLowerCase().includes(term);
-        const inRules  = (alert.rulesFired || []).some(r => r.toLowerCase().includes(term));
+        const inRules  = (alert.rulesFired || [])
+          .some(r => r.toLowerCase().includes(term));
         if (!inEntity && !inRules) return false;
       }
       return true;
@@ -250,12 +340,21 @@ isSelected(level: string): boolean {
     return 'bg-green-500';
   }
 
-  openDetail(alert: Alert): void { this.router.navigate(['/alert', alert.eventId]); }
-  goToTimeline(entityId: string): void { this.router.navigate(['/entity', entityId]); }
-  goToHistory(): void { this.router.navigate(['/history']); }
+  openDetail(alert: Alert): void {
+    this.router.navigate(['/alert', alert.eventId]);
+  }
+
+  goToTimeline(entityId: string): void {
+    this.router.navigate(['/entity', entityId]);
+  }
+
+  goToHistory(): void {
+    this.router.navigate(['/history']);
+  }
 
   exportCsv(): void {
-    const headers = ['eventId','entityId','riskLevel','finalRisk','logCategory','rulesFired','timestampIso'];
+    const headers = ['eventId','entityId','riskLevel','finalRisk',
+                     'logCategory','rulesFired','timestampIso'];
     const rows = this.filteredAlerts.map(a => [
       a.eventId, a.entityId, a.riskLevel, a.finalRisk,
       a.logCategory, (a.rulesFired || []).join(';'), a.timestampIso
