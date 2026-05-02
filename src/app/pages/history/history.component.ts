@@ -196,10 +196,15 @@ import { AlertService } from '../../core/services/alert.service';
                                  rounded text-xs font-medium">
                       ⚠️ {{ (alert.rulesFired || [])[0] || 'Rule Engine' }}
                     </span>
-                    <span *ngIf="!alert.ruleTriggered"
+                    <span *ngIf="!alert.ruleTriggered && alert.riskLevel !== 'LOW'"
                           class="px-2 py-0.5 bg-purple-50 text-purple-700
                                  rounded text-xs font-medium">
                       🤖 ML Detection
+                    </span>
+                    <span *ngIf="!alert.ruleTriggered && alert.riskLevel === 'LOW'"
+                          class="px-2 py-0.5 bg-green-50 text-green-700
+                                 rounded text-xs font-medium">
+                      ✅ Normal
                     </span>
                   </td>
                   <td class="px-4 py-3">
@@ -247,14 +252,16 @@ import { AlertService } from '../../core/services/alert.service';
                         </div>
                         <span *ngIf="(alert.rulesFired || []).length === 0"
                               class="text-xs text-gray-400">
-                          Nicio regulă — detectat de ML
+                          {{ alert.riskLevel === 'LOW'
+                             ? 'Activitate normală'
+                             : 'Nicio regulă — detectat de ML' }}
                         </span>
                       </div>
 
                       <!-- Context entitate -->
                       <div>
                         <div class="text-xs font-medium text-gray-500 mb-2">
-                          👤 Context entitate (5 min)
+                          👤 Context entitate
                         </div>
                         <div class="space-y-1 text-xs">
                           <div class="flex justify-between">
@@ -340,14 +347,14 @@ import { AlertService } from '../../core/services/alert.service';
                         </div>
                       </div>
 
-                      <!-- Buton detalii complete -->
+                      <!-- Buton detalii — deschide în tab nou -->
                       <div class="col-span-3 flex justify-end">
                         <button (click)="openDetail(alert);
                                          $event.stopPropagation()"
                                 class="px-4 py-2 bg-indigo-600 text-white
                                        rounded-lg text-xs hover:bg-indigo-700
                                        transition-colors">
-                          Vezi detalii complete →
+                          Vezi detalii complete ↗
                         </button>
                       </div>
 
@@ -494,8 +501,9 @@ export class HistoryComponent {
     return 'border-l-4 border-l-green-400';
   }
 
+  // ── Deschide în tab nou — istoricul rămâne intact ─────────────
   openDetail(alert: Alert): void {
-    this.router.navigate(['/alert', alert.eventId]);
+    window.open(`/alert/${alert.eventId}`, '_blank');
   }
 
   goToTimeline(entityId: string): void {
