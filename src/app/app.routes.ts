@@ -37,6 +37,18 @@ export const routes: Routes = [
       import('./pages/history/history.component')
         .then(m => m.HistoryComponent)
   },
+   {
+    path: 'incidents',
+    loadComponent: () =>
+      import('./pages/incidents/incidents.component')
+        .then(m => m.IncidentsComponent)
+  },
+  {
+    path: 'incident/:incidentId',
+    loadComponent: () =>
+      import('./pages/incident-timeline/incident-timeline.component')
+        .then(m => m.IncidentTimelineComponent)
+  },
   {
     path: '**',
     redirectTo: 'live'

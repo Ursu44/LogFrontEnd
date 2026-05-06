@@ -1,21 +1,23 @@
 import { Injectable } from '@angular/core';
 import { Apollo } from 'apollo-angular';
 import { Observable, map } from 'rxjs';
-import { Alert, DashboardStats, AlertFilters } from '../models/alert.model';
+import { Alert, DashboardStats, AlertFilters,
+         Incident, IncidentFilters } from '../models/alert.model';
 import {
-  GET_RECENT_ALERTS,
-  GET_ALERTS,
-  GET_ALERT,
-  GET_DASHBOARD_STATS,
-  GET_ENTITY_HISTORY,
-  NEW_ALERT_SUBSCRIPTION,
-  NEW_HIGH_ALERT_SUBSCRIPTION
+  GET_RECENT_ALERTS, GET_ALERTS, GET_ALERT,
+  GET_DASHBOARD_STATS, GET_ENTITY_HISTORY,
+  NEW_ALERT_SUBSCRIPTION, NEW_HIGH_ALERT_SUBSCRIPTION,
+  GET_RECENT_INCIDENTS, GET_INCIDENT,
+  GET_INCIDENTS_BY_ENTITY, GET_INCIDENTS_BY_SEVERITY,
+  NEW_INCIDENT_SUBSCRIPTION, NEW_CRITICAL_INCIDENT_SUBSCRIPTION
 } from '../graphql/queries';
 
 @Injectable({ providedIn: 'root' })
 export class AlertService {
 
   constructor(private apollo: Apollo) {}
+
+  // ── Alert methods ─────────────────────────────────────────────
 
   getRecentAlerts(): Observable<Alert[]> {
     return this.apollo.query<{ recentAlerts: Alert[] }>({
@@ -58,7 +60,7 @@ export class AlertService {
                    windowMinutes: number = 30): Observable<Alert[]> {
     return this.apollo.query<{ entityHistory: Alert[] }>({
       query: GET_ENTITY_HISTORY,
-      variables: { entityId, windowMinutes: Number(windowMinutes)  },
+      variables: { entityId, windowMinutes: Number(windowMinutes) },
       fetchPolicy: 'network-only'
     }).pipe(map(result => result.data!.entityHistory));
   }
@@ -73,5 +75,50 @@ export class AlertService {
     return this.apollo.subscribe<{ newHighAlert: Alert }>({
       query: NEW_HIGH_ALERT_SUBSCRIPTION
     }).pipe(map(result => result.data!.newHighAlert));
+  }
+
+  // ── Incident methods ──────────────────────────────────────────
+
+  getRecentIncidents(): Observable<Incident[]> {
+    return this.apollo.query<{ recentIncidents: Incident[] }>({
+      query: GET_RECENT_INCIDENTS,
+      fetchPolicy: 'network-only'
+    }).pipe(map(result => result.data!.recentIncidents));
+  }
+
+  getIncident(incidentId: string): Observable<Incident> {
+    return this.apollo.query<{ incident: Incident }>({
+      query: GET_INCIDENT,
+      variables: { incidentId },
+      fetchPolicy: 'network-only'
+    }).pipe(map(result => result.data!.incident));
+  }
+
+  getIncidentsByEntity(entityId: string): Observable<Incident[]> {
+    return this.apollo.query<{ incidentsByEntity: Incident[] }>({
+      query: GET_INCIDENTS_BY_ENTITY,
+      variables: { entityId },
+      fetchPolicy: 'network-only'
+    }).pipe(map(result => result.data!.incidentsByEntity));
+  }
+
+  getIncidentsBySeverity(severity: string): Observable<Incident[]> {
+    return this.apollo.query<{ incidentsBySeverity: Incident[] }>({
+      query: GET_INCIDENTS_BY_SEVERITY,
+      variables: { severity },
+      fetchPolicy: 'network-only'
+    }).pipe(map(result => result.data!.incidentsBySeverity));
+  }
+
+  subscribeToIncidents(): Observable<Incident> {
+    return this.apollo.subscribe<{ newIncident: Incident }>({
+      query: NEW_INCIDENT_SUBSCRIPTION
+    }).pipe(map(result => result.data!.newIncident));
+  }
+
+  subscribeToCriticalIncidents(): Observable<Incident> {
+    return this.apollo.subscribe<{ newCriticalIncident: Incident }>({
+      query: NEW_CRITICAL_INCIDENT_SUBSCRIPTION
+    }).pipe(map(result => result.data!.newCriticalIncident));
   }
 }

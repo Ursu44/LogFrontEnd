@@ -1,6 +1,5 @@
 import { gql } from 'apollo-angular';
 
-
 export const ALERT_FIELDS = gql`
   fragment AlertFields on Alert {
     eventId
@@ -35,6 +34,35 @@ export const ALERT_FIELDS = gql`
     }
     finalRisk
     riskLevel
+  }
+`;
+
+export const INCIDENT_FIELDS = gql`
+  fragment IncidentFields on Incident {
+    incidentId
+    entityId
+    createdAt
+    startTime
+    endTime
+    durationSec
+    attackTypes
+    mitreTactics
+    aptPattern
+    severity
+    multiStage
+    rootCause
+    rootCauseTs
+    rootCauseRules
+    rootCauseConfidence
+    totalEvents
+    highEvents
+    mediumEvents
+    peakScore
+    avgConfidence
+    maxConfidence
+    globalUncertainty
+    timelineJson
+    eventIds
   }
 `;
 
@@ -112,12 +140,67 @@ export const NEW_ALERT_SUBSCRIPTION = gql`
   }
 `;
 
-
 export const NEW_HIGH_ALERT_SUBSCRIPTION = gql`
   ${ALERT_FIELDS}
   subscription NewHighAlert {
     newHighAlert {
       ...AlertFields
+    }
+  }
+`;
+
+// ── Query-uri noi pentru Incident ─────────────────────────────────
+
+export const GET_RECENT_INCIDENTS = gql`
+  ${INCIDENT_FIELDS}
+  query GetRecentIncidents {
+    recentIncidents {
+      ...IncidentFields
+    }
+  }
+`;
+
+export const GET_INCIDENT = gql`
+  ${INCIDENT_FIELDS}
+  query GetIncident($incidentId: String!) {
+    incident(incidentId: $incidentId) {
+      ...IncidentFields
+    }
+  }
+`;
+
+export const GET_INCIDENTS_BY_ENTITY = gql`
+  ${INCIDENT_FIELDS}
+  query GetIncidentsByEntity($entityId: String!) {
+    incidentsByEntity(entityId: $entityId) {
+      ...IncidentFields
+    }
+  }
+`;
+
+export const GET_INCIDENTS_BY_SEVERITY = gql`
+  ${INCIDENT_FIELDS}
+  query GetIncidentsBySeverity($severity: String!) {
+    incidentsBySeverity(severity: $severity) {
+      ...IncidentFields
+    }
+  }
+`;
+
+export const NEW_INCIDENT_SUBSCRIPTION = gql`
+  ${INCIDENT_FIELDS}
+  subscription NewIncident {
+    newIncident {
+      ...IncidentFields
+    }
+  }
+`;
+
+export const NEW_CRITICAL_INCIDENT_SUBSCRIPTION = gql`
+  ${INCIDENT_FIELDS}
+  subscription NewCriticalIncident {
+    newCriticalIncident {
+      ...IncidentFields
     }
   }
 `;
