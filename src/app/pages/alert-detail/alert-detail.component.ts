@@ -13,11 +13,6 @@ import { AlertService } from '../../core/services/alert.service';
 
       <!-- Breadcrumb -->
       <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
-        <button (click)="goBack()"
-                class="hover:text-indigo-600 transition-colors">
-          ← Înapoi
-        </button>
-        <span>/</span>
         <span>Alert Detail</span>
         <span>/</span>
         <span class="font-mono text-xs text-gray-400">

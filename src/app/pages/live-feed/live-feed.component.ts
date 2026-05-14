@@ -53,16 +53,6 @@ import { AlertService } from '../../core/services/alert.service';
                          hover:bg-gray-100 transition-colors text-sm">
             {{ isPaused ? '▶ Reia' : '⏸ Pauză' }}
           </button>
-          <button (click)="exportCsv()"
-                  class="px-4 py-2 rounded-lg border border-gray-300
-                         hover:bg-gray-100 transition-colors text-sm">
-            ⬇ Export CSV
-          </button>
-          <button (click)="goToHistory()"
-                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white
-                         hover:bg-indigo-700 transition-colors text-sm">
-            🗂 Caută în Istoric
-          </button>
         </div>
       </div>
 
@@ -127,11 +117,6 @@ import { AlertService } from '../../core/services/alert.service';
           🔄 Toate
         </button>
 
-        <input [(ngModel)]="searchTerm"
-               (input)="applyFilters()"
-               placeholder="Caută entitate sau regulă..."
-               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg
-                      text-sm focus:outline-none focus:border-indigo-500">
       </div>
 
       <!-- Tabel alerte -->
@@ -223,13 +208,11 @@ export class LiveFeedComponent implements OnInit, OnDestroy {
   private sub!: Subscription;
   private MAX_ALERTS = 200;
 
-  // ── Getter-e contoare ─────────────────────────────────────────
   get highCount()   { return this.alerts.filter(a => a.riskLevel === 'HIGH').length; }
   get mediumCount() { return this.alerts.filter(a => a.riskLevel === 'MEDIUM').length; }
   get lowCount()    { return this.alerts.filter(a => a.riskLevel === 'LOW').length; }
   get totalCount()  { return this.alerts.length; }
 
-  // ── Getter-e procente ─────────────────────────────────────────
   get highPercent(): number {
     if (!this.totalCount) return 0;
     return Math.round((this.highCount / this.totalCount) * 100);

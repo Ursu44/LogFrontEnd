@@ -13,17 +13,12 @@ import { AlertService } from '../../core/services/alert.service';
     <div class="p-6">
 
       <div class="flex items-center gap-3 mb-6">
-        <button (click)="router.navigate(['/live'])"
-                class="hover:text-indigo-600 transition-colors text-gray-500">
-          ← Live Feed
-        </button>
-        <span class="text-gray-300">/</span>
         <h1 class="text-2xl font-bold text-gray-800">Istoric Alerte</h1>
       </div>
 
       <div class="bg-white rounded-xl shadow p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-700 mb-4">
-          🔍 Filtre căutare PostgreSQL
+          🔍 Filtre de căutare 
         </h2>
         <div class="grid grid-cols-3 gap-4 mb-4">
 
@@ -100,7 +95,7 @@ import { AlertService } from '../../core/services/alert.service';
           <!-- Limită -->
           <div>
             <label class="block text-sm font-medium text-gray-600 mb-2">
-              Max rezultate
+              Maxim de rezultate
             </label>
             <select [(ngModel)]="selectedLimit"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg
@@ -121,7 +116,7 @@ import { AlertService } from '../../core/services/alert.service';
                   class="px-6 py-2 bg-indigo-600 text-white rounded-lg
                          hover:bg-indigo-700 transition-colors text-sm
                          disabled:opacity-50 disabled:cursor-not-allowed">
-            {{ loading ? '⏳ Căutare...' : '🔍 Caută în PostgreSQL' }}
+            {{ loading ? '⏳ Căutare...' : '🔍 Caută' }}
           </button>
           <button (click)="clearFilters()"
                   class="px-4 py-2 border border-gray-300 rounded-lg
